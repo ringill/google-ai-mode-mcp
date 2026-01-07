@@ -97,6 +97,34 @@ export class BrowserManager {
 
     // Determine headless mode
     const shouldBeHeadless = headless !== undefined ? headless : CONFIG.headless;
+
+    // Platform-aware DISPLAY check (Linux only)
+    // Windows/Mac have native display servers and don't need DISPLAY variable
+    if (!shouldBeHeadless && process.platform === 'linux' && !process.env.DISPLAY) {
+      throw new Error(`❌ Cannot start visible browser: No X-Server detected ($DISPLAY not set)
+
+This commonly occurs in:
+- Codex AI editor (Linux/WSL)
+- Docker containers
+- SSH sessions without X11 forwarding
+
+Solution for Codex (Linux/WSL):
+Add xvfb-run wrapper in your MCP config:
+
+{
+  "mcpServers": {
+    "google-ai-search": {
+      "command": "xvfb-run",
+      "args": ["-a", "npx", "google-ai-mode-mcp@latest"]
+    }
+  }
+}
+
+Install xvfb if needed: sudo apt-get install xvfb
+
+Alternative: Use headless mode (set headless: true in tool parameters)`);
+    }
+
     this.currentHeadlessMode = shouldBeHeadless;
 
     // Use random viewport for anti-detection

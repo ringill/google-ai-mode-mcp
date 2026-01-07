@@ -86,9 +86,27 @@ claude mcp add google-ai-search npx google-ai-mode-mcp@latest
 codex mcp add google-ai-search -- npx google-ai-mode-mcp@latest
 ```
 
+**Linux/WSL users on Codex:** If you get a "Missing X-Server" error when trying to show the browser for CAPTCHA solving, use xvfb-run:
+```json
+{
+  "mcpServers": {
+    "google-ai-search": {
+      "command": "xvfb-run",
+      "args": ["-a", "npx", "google-ai-mode-mcp@latest"]
+    }
+  }
+}
+```
+Install xvfb if needed: `sudo apt-get install xvfb`
+
 **Cline:**
 ```bash
 cline mcp add google-ai-search -- npx google-ai-mode-mcp@latest
+```
+
+**Gemini:**
+```bash
+gemini mcp add google-ai-mode npx -y google-ai-mode-mcp@latest --scope user
 ```
 
 **VS Code:**
