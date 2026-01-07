@@ -2,7 +2,7 @@
 
 # Google AI Mode MCP Server
 
-**Connect any MCP-compatible code agent to Google's AI Mode. For free.**
+**Connect any MCP-compatible code agent to Google's AI Mode—for free.**
 
 This MCP server gives your code agent direct access to Google's AI-synthesized search results—complete with source citations, clean Markdown formatting, and massive token savings. Let Google do the research while your agent focuses on building.
 
