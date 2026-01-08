@@ -400,7 +400,7 @@ Try: "Next.js 15 new features and breaking changes"
 Want to contribute or run from source?
 
 ```bash
-git clone https://github.com/geromed/google-ai-mode-mcp.git
+git clone https://github.com/PleasePrompto/google-ai-mode-mcp.git
 cd google-ai-mode-mcp
 npm install
 npm run build
@@ -431,7 +431,7 @@ While results come from Google's AI Mode with source citations, always verify cr
 
 Found an issue or want to contribute?
 
-- Report bugs: [GitHub Issues](https://github.com/geromed/google-ai-mode-mcp/issues)
+- Report bugs: [GitHub Issues](https://github.com/PleasePrompto/google-ai-mode-mcp/issues)
 - Pull requests: Welcome
 - Contact: [github@geromedexheimer.de](mailto:github@geromedexheimer.de)
 
