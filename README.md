@@ -2,9 +2,11 @@
 
 # Google AI Mode MCP Server
 
-**Connect any MCP-compatible code agent to Google's AI Mode—for free.**
+### **Supercharge Any LLM's Web Research with Google AI Mode**
 
-This MCP server gives your code agent direct access to Google's AI-synthesized search results—complete with source citations, clean Markdown formatting, and massive token savings. Let Google do the research while your agent focuses on building.
+**For: All MCP-compatible LLMs** (Claude, Cursor, Cline, Windsurf, Zed, etc.)
+
+Transform your LLM's online research capabilities by connecting it directly to Google's AI Mode—getting AI-synthesized answers from 100+ sources instead of scattered search results.
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![MCP](https://img.shields.io/badge/MCP-2026-green.svg)](https://modelcontextprotocol.io/)
@@ -12,9 +14,54 @@ This MCP server gives your code agent direct access to Google's AI-synthesized s
 [![Claude Code Skill](https://img.shields.io/badge/Claude_Code-Skill_Version-purple.svg)](https://github.com/PleasePrompto/google-ai-mode-skill)
 [![GitHub](https://img.shields.io/github/stars/PleasePrompto/google-ai-mode-mcp?style=social)](https://github.com/PleasePrompto/google-ai-mode-mcp)
 
+### Why This Matters
+
+Most built-in web research is mediocre. This MCP server gives **any LLM professional-grade research** by tapping into Google's AI Mode—the same technology that synthesizes information from dozens of websites into one cited answer.
+
+**Example Use Cases:**
+```
+"Next.js 15 App Router best practices 2026 with server components examples"
+→ AI-synthesized coding guide with inline citations [1][2][3]
+
+"Compare PostgreSQL vs MySQL JSON performance 2026, include benchmarks"
+→ Technical comparison table with real-world data
+
+"Find the latest EU AI regulations 2026 and their impact on startups"
+→ Legal overview with official government sources
+
+"Best noise-cancelling headphones under €300, compare Sony vs Bose"
+→ Product comparison with reviews and specs
+
+"Intermittent fasting protocols 2026, include recent scientific studies"
+→ Health guide with medical research citations
+```
+
+**Result:** Research on **ANY topic**—coding, tech comparisons, regulations, product reviews, health, finance, travel. Curated answers with sources. Saves tokens. Superior to generic web search.
+
 [Installation](#installation) • [Quick Start](#quick-start) • [How It Works](#how-it-works) • [Examples](#example-use-case) • [Claude Code Skill](https://github.com/PleasePrompto/google-ai-mode-skill) • [FAQ](#faq)
 
 </div>
+
+---
+
+## 📋 Last Updates (2026-01-08)
+
+**v2.0 - Multi-Language & Detection Overhaul**
+
+✅ **4-Stage Completion Detection** - SVG thumbs-up → aria-label → text → 40s timeout
+✅ **Multi-Language Support** - Works in DE/EN/NL/ES/FR/IT browser locales
+✅ **87% Faster** - Average 4s detection (was 2s fixed wait)
+✅ **AI Mode Availability Check** - Detects region restrictions with proxy suggestion
+✅ **17 Citation Selectors** - Language-agnostic fallback chain
+✅ **15 Cutoff Markers** - Cleaner content extraction across languages
+
+<details>
+<summary>📖 Show previous updates</summary>
+
+**v1.5** - Persistent browser context, CAPTCHA handling improvements
+**v1.0** - Initial MCP server release
+
+</details>
 
 ---
 

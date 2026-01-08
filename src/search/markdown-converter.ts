@@ -10,14 +10,7 @@ import TurndownService from "turndown";
 import type { Citation, Source } from "../types.js";
 import { log } from "../utils/logger.js";
 import { MarkdownConversionError } from "../errors.js";
-
-// Disclaimer texts that mark the end of AI content (English primary)
-const DISCLAIMER_MARKERS = [
-  "AI-generated answers may contain errors",
-  "Generative AI is experimental",
-  "AI overviews are experimental",
-  "KI-Antworten können Fehler enthalten", // German fallback
-];
+import { CUTOFF_MARKERS } from "../constants/language-constants.js";
 
 export class MarkdownConverter {
   private turndown: TurndownService;
@@ -78,61 +71,65 @@ export class MarkdownConverter {
 
   /**
    * Embed citations into markdown
-   * Replaces [CITE-1] with [1], adds source list at bottom
+   * EXACT 1:1 CLONE of Python skill logic (lines 480-501)!
+   * Replaces [CITE-0] with [1][2] based on actual sources per citation
    */
   embedCitations(
     markdown: string,
-    citations: Citation[],
-    sources: Source[]
+    citations: any[], // Raw citation groups with all sources
+    _sources: Source[] // Unused, kept for interface compatibility
   ): { markdown: string; sources: Source[] } {
     try {
       log.info("🔗 Embedding citations...");
 
-      let processedMarkdown = markdown;
+      let modifiedMd = markdown;
+      const citationSources: Source[] = [];
 
-      // Replace citation markers with numbered references
-      // Note: Turndown escapes [ and ] as \[ and \], so we need to match those
-      citations.forEach((_citation, index) => {
-        const citationNumber = index + 1;
-        // Match both escaped and non-escaped versions
-        const escapedMarkerRegex = new RegExp(
-          `\\\\\\[CITE-${citationNumber}\\\\\\]`,
-          "g"
-        );
-        const normalMarkerRegex = new RegExp(
-          `\\[CITE-${citationNumber}\\]`,
-          "g"
-        );
+      // Sort citations by marker_id (highest first) to preserve indices during replacement
+      // EXACT SKILL LOGIC: sorted(citations, key=lambda c: c['marker_id'], reverse=True)
+      const citationsSorted = [...citations].sort(
+        (a, b) => (b.marker_id || 999) - (a.marker_id || 999)
+      );
 
-        // Try escaped version first (Turndown escapes them)
-        processedMarkdown = processedMarkdown.replace(
-          escapedMarkerRegex,
-          `[${citationNumber}]`
-        );
-        // Then try normal version (fallback)
-        processedMarkdown = processedMarkdown.replace(
-          normalMarkerRegex,
-          `[${citationNumber}]`
-        );
-      });
+      for (const citation of citationsSorted) {
+        const markerId = citation.marker_id;
+        const marker = `[CITE-${markerId}]`;
+        const sources = citation.sources || [];
 
-      // Add source list at the bottom if we have sources
-      if (sources.length > 0) {
-        processedMarkdown += "\n\n## Sources\n\n";
-        sources.forEach((source, index) => {
-          processedMarkdown += `[${index + 1}] [${source.title}](${source.url}) - ${source.domain}\n`;
-        });
+        if (sources.length > 0) {
+          const startIdx = citationSources.length;
+
+          // Generate footnote string: [1][2][3]
+          // EXACT SKILL LOGIC: ''.join(f'[{start_idx + i + 1}]' for i in range(len(sources)))
+          const footnotes = sources
+            .map((_: any, i: number) => `[${startIdx + i + 1}]`)
+            .join("");
+
+          // Replace marker in text (first occurrence only)
+          // EXACT SKILL LOGIC: modified_md.replace(marker, footnotes, 1)
+          if (modifiedMd.includes(marker)) {
+            modifiedMd = modifiedMd.replace(marker, footnotes);
+            citationSources.push(...sources);
+          }
+        }
       }
 
-      log.success(`✅ Embedded ${citations.length} citations and ${sources.length} sources`);
+      // Remove leftover markers (if no sources found)
+      // EXACT SKILL LOGIC: re.sub(r'\[CITE-\d+\]', '', modified_md)
+      modifiedMd = modifiedMd.replace(/\[CITE-\d+\]/g, "");
 
+      log.success(
+        `✅ Embedded ${citations.length} citations with ${citationSources.length} sources`
+      );
+
+      // DON'T add sources here! Will be added AFTER postProcessMarkdown (like skill!)
       return {
-        markdown: processedMarkdown,
-        sources,
+        markdown: modifiedMd,
+        sources: citationSources,
       };
     } catch (error) {
       log.warning(`Citation embedding failed: ${error}`);
-      return { markdown, sources };
+      return { markdown, sources: [] };
     }
   }
 
@@ -159,7 +156,7 @@ export class MarkdownConverter {
       processed = processed.replace(/\[\]\([^)]*\)/g, "");
 
       // Cut off at disclaimer if present
-      for (const disclaimer of DISCLAIMER_MARKERS) {
+      for (const disclaimer of CUTOFF_MARKERS) {
         const index = processed.indexOf(disclaimer);
         if (index !== -1) {
           processed = processed.substring(0, index);
@@ -188,7 +185,8 @@ export class MarkdownConverter {
   }
 
   /**
-   * Full conversion pipeline: HTML → Markdown → Citations → Post-process
+   * Full conversion pipeline: HTML → Markdown → Citations → Post-process → Sources
+   * EXACT 1:1 CLONE of Python skill flow (lines 698-760)!
    */
   convert(
     html: string,
@@ -198,12 +196,25 @@ export class MarkdownConverter {
     // Convert HTML to markdown
     let markdown = this.convertToMarkdown(html);
 
-    // Embed citations
-    const result = this.embedCitations(markdown, citations, sources);
+    // Embed citations (replaces [CITE-0] with [1][2], returns sources)
+    const { markdown: mdWithCitations, sources: citationSources } =
+      this.embedCitations(markdown, citations, sources);
 
-    // Post-process
-    result.markdown = this.postProcessMarkdown(result.markdown);
+    // Post-process (cleanup, cutoff at disclaimer)
+    let processed = this.postProcessMarkdown(mdWithCitations);
 
-    return result;
+    // Append sources section at the end (AFTER post-processing, like skill!)
+    // EXACT SKILL LOGIC: lines 756-760
+    if (citationSources.length > 0) {
+      processed += "\n\n---\n\n## Sources:\n\n";
+      citationSources.forEach((source, index) => {
+        processed += `[${index + 1}] ${source.title}  \n${source.url}\n\n`;
+      });
+    }
+
+    return {
+      markdown: processed,
+      sources: citationSources,
+    };
   }
 }

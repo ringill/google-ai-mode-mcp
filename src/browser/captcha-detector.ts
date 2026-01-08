@@ -15,27 +15,12 @@ import { CONFIG } from "../config.js";
 import { log } from "../utils/logger.js";
 import { CaptchaTimeoutError } from "../errors.js";
 import { getPageText } from "../utils/page-utils.js";
+import { CAPTCHA_ERROR_MESSAGES } from "../constants/language-constants.js";
 
 // CAPTCHA URL patterns
 const CAPTCHA_URL_PATTERNS = [
   "google.com/sorry/index",
   "/sorry/index?continue=",
-];
-
-// CAPTCHA error messages (English primary, since browser is set to en-US)
-const CAPTCHA_ERROR_MESSAGES = [
-  // English (primary)
-  "Our systems have detected unusual traffic",
-  "unusual traffic",
-  "About this page",
-
-  // German (fallback)
-  "Unsere Systeme haben ungewöhnlichen Datenverkehr",
-  "Über diese Seite",
-
-  // Generic
-  "CAPTCHA",
-  "reCAPTCHA",
 ];
 
 // Page length threshold

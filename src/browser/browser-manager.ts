@@ -7,7 +7,7 @@
 
 import type { BrowserContext, Page } from "patchright";
 import { chromium } from "patchright";
-import { CONFIG, VIEWPORT_SIZES } from "../config.js";
+import { CONFIG } from "../config.js";
 import { log } from "../utils/logger.js";
 
 // Browser arguments for stealth mode
@@ -127,12 +127,7 @@ Alternative: Use headless mode (set headless: true in tool parameters)`);
 
     this.currentHeadlessMode = shouldBeHeadless;
 
-    // Use random viewport for anti-detection
-    const viewport =
-      VIEWPORT_SIZES[Math.floor(Math.random() * VIEWPORT_SIZES.length)];
-
     log.info(`  🚀 Launching browser (${shouldBeHeadless ? "headless" : "visible"})`);
-    log.info(`  📐 Viewport: ${viewport.width}x${viewport.height}`);
 
     try {
       this.context = await chromium.launchPersistentContext(
@@ -140,7 +135,7 @@ Alternative: Use headless mode (set headless: true in tool parameters)`);
         {
           channel: "chrome",
           headless: shouldBeHeadless,
-          viewport,
+          // NO viewport setting - use browser default (like Python skill!)
           ignoreDefaultArgs: ["--enable-automation"],
           args: BROWSER_ARGS,
           // Add user agent for better stealth

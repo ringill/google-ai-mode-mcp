@@ -17,6 +17,7 @@ import { MarkdownConverter } from "./markdown-converter.js";
 import { CONFIG, applyBrowserOptions } from "../config.js";
 import { log } from "../utils/logger.js";
 import { CaptchaTimeoutError } from "../errors.js";
+import { waitForAiCompletion, checkAiModeAvailability } from "../utils/completion-detector.js";
 
 export class SearchHandler {
   private browserManager: BrowserManager;
@@ -80,10 +81,6 @@ export class SearchHandler {
           timeout: CONFIG.browserTimeout,
         });
 
-        // Give Google AI a moment to start generating (2 seconds)
-        log.info("⏳ Waiting for AI response to start generating...");
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-
         // Check for CAPTCHA (immediate)
         log.info("🔒 Checking for CAPTCHA...");
         const captchaState = await this.captchaDetector.detectCaptcha(page);
@@ -123,12 +120,25 @@ export class SearchHandler {
             timeout: CONFIG.browserTimeout,
           });
 
-          // Give Google AI a moment to start generating
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-
           // Handle CAPTCHA (wait for solution)
           try {
             await this.captchaDetector.handleCaptcha(visiblePage);
+
+            // Check AI Mode availability (region/language restrictions)
+            const aiModeAvailable = await checkAiModeAvailability(visiblePage);
+            if (!aiModeAvailable) {
+              await visiblePage.close();
+              return {
+                success: false,
+                markdown: "",
+                sources: [],
+                query,
+                error: "Google AI Mode is not available in your country or language. Please use a proxy/VPN to access from a supported region (e.g., US, UK, Germany).",
+              };
+            }
+
+            // Wait for AI response completion (SVG → aria-label → text → timeout)
+            await waitForAiCompletion(visiblePage);
 
             // CAPTCHA solved - continue with visible page
             // Don't switch back to headless yet - keep using visible page for this search
@@ -161,7 +171,23 @@ export class SearchHandler {
             throw error;
           }
         } else {
-          // No CAPTCHA - proceed with search
+          // No CAPTCHA - check AI Mode availability and wait for completion
+          const aiModeAvailable = await checkAiModeAvailability(page);
+          if (!aiModeAvailable) {
+            await page.close();
+            return {
+              success: false,
+              markdown: "",
+              sources: [],
+              query,
+              error: "Google AI Mode is not available in your country or language. Please use a proxy/VPN to access from a supported region (e.g., US, UK, Germany).",
+            };
+          }
+
+          // Wait for AI response completion (SVG → aria-label → text → timeout)
+          await waitForAiCompletion(page);
+
+          // Proceed with search
           const result = await this.performSearch(page, query);
 
           // Close page
@@ -199,34 +225,31 @@ export class SearchHandler {
     query: string
   ): Promise<SearchResult> {
     try {
-      // Extract AI response and citations
+      // Extract AI response, citations, and sources (all in one - 1:1 clone from skill!)
       log.info("📝 Extracting AI response and citations...");
       const { html, citations } = await this.responseParser.extractAiResponse(
         page
       );
 
-      // Extract sources from sidebar
-      const sources = await this.responseParser.extractSourcesFromSidebar(page);
-
-      // Convert to markdown
+      // Convert to markdown (citations → footnotes, returns sources!)
       log.info("📄 Converting to markdown...");
-      const { markdown } = this.markdownConverter.convert(
+      const { markdown, sources: embeddedSources } = this.markdownConverter.convert(
         html,
         citations,
-        sources
+        [] // Empty array, converter gets sources from citations
       );
 
       log.info("=".repeat(80));
       log.success("✅ Search completed successfully!");
       log.info(`   Citations: ${citations.length}`);
-      log.info(`   Sources: ${sources.length}`);
+      log.info(`   Sources: ${embeddedSources.length}`);
       log.info(`   Markdown length: ${markdown.length} chars`);
       log.info("=".repeat(80));
 
       return {
         success: true,
         markdown,
-        sources,
+        sources: embeddedSources, // Use sources from markdown converter!
         query,
       };
     } catch (error) {

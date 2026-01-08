@@ -1,45 +1,29 @@
 /**
  * Response Parser for Google AI Search Mode
  *
- * Extracts AI response HTML and citations from Google search pages
- * Based on 011_network_intercept.py
+ * EXACT 1:1 PORT of DOM_INJECTION_SCRIPT from Python skill!
+ * Based on SERPO's proven extraction method.
  */
 
 import type { Page } from "patchright";
-import type { Citation, Source } from "../types.js";
 import { log } from "../utils/logger.js";
 import { CONFIG } from "../config.js";
 import { CitationExtractionError } from "../errors.js";
+import { CITATION_SELECTORS } from "../constants/language-constants.js";
 
 // DOM selectors
 const MAIN_CONTAINER = '[data-container-id="main-col"]';
 
-// Citation button selectors (English, since browser is set to en-US)
-const CITATION_BUTTON_SELECTORS = [
-  '[aria-label*="Related links"]', // English (primary)
-  'button[aria-label*="Sources"]', // Generic fallback
-  '[aria-label*="Zugehörige Links"]', // German fallback (in case locale fails)
-];
-
-// Google domains to filter out
-const GOOGLE_DOMAINS = [
-  "google.com",
-  "google.de",
-  "google.co.uk",
-  "googleapis.com",
-  "googleusercontent.com",
-  "gstatic.com",
-];
-
 export class ResponseParser {
   /**
    * Extract AI response HTML and citations from the page
+   * EXACT 1:1 CLONE of Python skill's DOM_INJECTION_SCRIPT!
    */
   async extractAiResponse(
     page: Page
-  ): Promise<{ html: string; citations: Citation[] }> {
+  ): Promise<{ html: string; citations: any[] }> {
     try {
-      log.info("📝 Extracting AI response...");
+      log.info("📚 Injecting Markers & Extracting Sources...");
 
       // Wait for main container to be visible
       try {
@@ -48,192 +32,229 @@ export class ResponseParser {
           timeout: CONFIG.responseTimeout,
         });
       } catch (error) {
-        // Debug: Take screenshot to see what Google shows
-        log.error("Main container not found - taking debug screenshot...");
-        await page.screenshot({ path: "/tmp/google-ai-debug.png", fullPage: true });
-        log.error("Screenshot saved to: /tmp/google-ai-debug.png");
-        throw error;
+        log.error("Main container not found - AI Overview missing?");
+        throw new CitationExtractionError("AI Overview container not found");
       }
 
-      // Inject citation markers
-      const citations = await this.injectCitationMarkers(page);
-      log.success(`   Found ${citations.length} citations`);
+      // Execute DOM injection script (1:1 clone from Python skill)
+      const result = await page.evaluate((selectors) => {
+        // Helper: Check if element is visually visible to user
+        function isVisible(el: any): boolean {
+          if (!el) return false;
+          const style = window.getComputedStyle(el);
+          const rect = el.getBoundingClientRect();
+          return (
+            style.display !== "none" &&
+            style.visibility !== "hidden" &&
+            style.opacity !== "0" &&
+            el.offsetParent !== null &&
+            rect.width > 0 &&
+            rect.height > 0
+          );
+        }
 
-      // Click source buttons to load sidebar
-      if (citations.length > 0) {
-        await this.clickSourceButtons(page);
+        // Find main container
+        const mainCol = document.querySelector('[data-container-id="main-col"]');
+        if (!mainCol) {
+          return { error: "main-col not found (AI Overview missing?)" };
+        }
+
+        // SERPO OPTIMIZATION: Expand "Show more" buttons first
+        try {
+          const showMoreBtns = Array.from(
+            mainCol.querySelectorAll('[aria-expanded="false"]')
+          );
+          for (const btn of showMoreBtns) {
+            const btnEl = btn as HTMLElement;
+            if (
+              isVisible(btnEl) &&
+              (btnEl.innerText.includes("Show more") ||
+                btnEl.innerText.includes("Mehr anzeigen") ||
+                btnEl.innerText.includes("Meer weergeven"))
+            ) {
+              (btnEl as any).click();
+              // Small delay for expansion
+              const waitSync = (ms: number) => {
+                const start = Date.now();
+                while (Date.now() - start < ms) {
+                  // Busy wait
+                }
+              };
+              waitSync(200);
+            }
+          }
+        } catch (e) {
+          console.warn("Show more expansion failed", e);
+        }
+
+        // MULTI-LANGUAGE: Try citation selectors in order
+        let buttons: Element[] = [];
+
+        for (const selector of selectors) {
+          buttons = Array.from(mainCol.querySelectorAll(selector));
+          if (buttons.filter((b) => isVisible(b as HTMLElement)).length > 0) {
+            console.log(
+              `Found ${buttons.length} citation buttons with: ${selector}`
+            );
+            break;
+          }
+        }
+
+        const allCitations: any[] = [];
+        let markerIndex = 0;
+
+        // FOR EACH BUTTON: Mark → Click → Extract (SERPO method!)
+        for (const btn of buttons) {
+          const btnEl = btn as HTMLElement;
+
+          // Skip invisible "ghost" buttons in DOM
+          if (!isVisible(btnEl)) continue;
+
+          // 1. Insert visual marker [CITE-N] (SERPO: wrapped in <code> tag!)
+          const markerId = markerIndex++;
+          const marker = document.createElement("span");
+          marker.className = "citation-marker";
+          marker.innerHTML = `<code>[CITE-${markerId}]</code>`; // Code-tag wrap!
+
+          // Place marker after button
+          if (btnEl.nextSibling) {
+            btnEl.parentNode?.insertBefore(marker, btnEl.nextSibling);
+          } else {
+            btnEl.parentNode?.appendChild(marker);
+          }
+
+          // 2. Click button to load sources in sidebar
+          try {
+            btnEl.scrollIntoView({ behavior: "instant", block: "center" });
+
+            // Count visible links BEFORE click
+            const countVisibleLinks = () => {
+              const rhsCol = document.querySelector('[data-container-id="rhs-col"]');
+              if (!rhsCol) return 0;
+              return Array.from(rhsCol.querySelectorAll("a[href]")).filter((l) =>
+                isVisible(l as HTMLElement)
+              ).length;
+            };
+            const beforeCount = countVisibleLinks();
+
+            (btnEl as any).click();
+
+            // SMART WAIT: Wait until links change (max 300ms)
+            const startTime = Date.now();
+            while (Date.now() - startTime < 300) {
+              // Poll every 10ms
+              const waitSync = (ms: number) => {
+                const start = Date.now();
+                while (Date.now() - start < ms) {
+                  // Busy wait
+                }
+              };
+              waitSync(10);
+
+              if (countVisibleLinks() !== beforeCount) break;
+            }
+
+            // Short buffer for animations
+            const waitSync = (ms: number) => {
+              const start = Date.now();
+              while (Date.now() - start < ms) {
+                // Busy wait
+              }
+            };
+            waitSync(50);
+          } catch (e) {
+            console.warn("Click failed", e);
+          }
+
+          // 3. Extract sources from sidebar (rhs-col)
+          const sources: any[] = [];
+          const seen = new Set<string>();
+          const rhsCol = document.querySelector('[data-container-id="rhs-col"]');
+
+          if (rhsCol) {
+            const links = Array.from(rhsCol.querySelectorAll("a[href]"));
+            for (const link of links) {
+              const linkEl = link as HTMLAnchorElement;
+
+              if (!isVisible(linkEl)) continue;
+
+              const url = linkEl.href;
+              const title =
+                linkEl.innerText.trim() ||
+                linkEl.getAttribute("aria-label") ||
+                "";
+
+              // Filter Google internal domains
+              const skipDomains = [
+                "google.com",
+                "google.de",
+                "gstatic.com",
+                "support.google.com",
+              ];
+
+              if (
+                url &&
+                url.startsWith("http") &&
+                !skipDomains.some((d) => url.includes(d)) &&
+                !seen.has(url)
+              ) {
+                seen.add(url);
+                sources.push({
+                  title: title,
+                  url: url,
+                  source: new URL(url).hostname,
+                });
+              }
+            }
+          }
+
+          allCitations.push({ marker_id: markerId, sources: sources });
+        }
+
+        // Return: Modified HTML (with markers) + extracted sources
+        return {
+          html: mainCol.innerHTML,
+          citations: allCitations,
+        };
+      }, CITATION_SELECTORS);
+
+      // Check for errors
+      if ("error" in result) {
+        throw new CitationExtractionError(result.error as string);
       }
 
-      // Extract HTML from main container
-      const html = await page.$eval(MAIN_CONTAINER, (el) => el.innerHTML);
+      const { html, citations } = result as { html: string; citations: any[] };
 
       if (!html || html.trim().length === 0) {
         throw new CitationExtractionError("No AI response HTML found");
       }
 
-      log.success(`✅ AI response extracted (${html.length} chars)`);
+      // Convert citations to format needed by markdown converter
+      // Keep ALL sources per citation (not just first!)
+      const formattedCitations = citations.map((c: any) => ({
+        marker_id: c.marker_id,
+        marker: `[CITE-${c.marker_id}]`,
+        sources: c.sources.map((s: any) => ({
+          title: s.title,
+          url: s.url,
+          domain: s.source,
+        })),
+      }));
 
-      return { html, citations };
+      // Count total sources
+      const totalSources = formattedCitations.reduce(
+        (sum: number, c: any) => sum + c.sources.length,
+        0
+      );
+
+      log.success(
+        `✅ Extracted ${citations.length} citations with ${totalSources} total sources`
+      );
+
+      return { html, citations: formattedCitations };
     } catch (error) {
       log.error(`Failed to extract AI response: ${error}`);
       throw new CitationExtractionError(`Extraction failed: ${error}`);
-    }
-  }
-
-  /**
-   * Inject citation markers into the page
-   * Returns array of citations with markers
-   */
-  async injectCitationMarkers(page: Page): Promise<Citation[]> {
-    try {
-      const citations = await page.evaluate((selectors) => {
-        const citationsArray: { index: number; marker: string }[] = [];
-
-        // Try each selector until we find citation buttons
-        for (const selector of selectors) {
-          const buttons = Array.from(document.querySelectorAll(selector));
-
-          if (buttons.length > 0) {
-            buttons.forEach((button, index) => {
-              const marker = `[CITE-${index + 1}]`;
-              const markerSpan = (document as any).createElement("span");
-              markerSpan.textContent = marker;
-              markerSpan.className = "citation-marker";
-
-              // Insert marker after the button
-              (button as any).parentNode?.insertBefore(
-                markerSpan,
-                (button as any).nextSibling
-              );
-
-              citationsArray.push({
-                index: index + 1,
-                marker,
-              });
-            });
-
-            break; // Found buttons, stop trying other selectors
-          }
-        }
-
-        return citationsArray;
-      }, CITATION_BUTTON_SELECTORS);
-
-      log.info(`   Injected ${citations.length} citation markers`);
-      return citations;
-    } catch (error) {
-      log.warning(`Failed to inject citation markers: ${error}`);
-      return [];
-    }
-  }
-
-  /**
-   * Click all source buttons to load the sidebar
-   */
-  async clickSourceButtons(page: Page): Promise<void> {
-    try {
-      log.info("   Clicking source buttons...");
-
-      // Find citation buttons
-      let buttons: any[] = [];
-
-      for (const selector of CITATION_BUTTON_SELECTORS) {
-        buttons = await page.$$(selector);
-        if (buttons.length > 0) {
-          log.info(`   Found ${buttons.length} buttons with selector: ${selector}`);
-          break;
-        }
-      }
-
-      if (buttons.length === 0) {
-        log.warning("   No citation buttons found");
-        return;
-      }
-
-      // Click each button with delay
-      for (let i = 0; i < buttons.length; i++) {
-        try {
-          await buttons[i].click();
-          await new Promise((resolve) => setTimeout(resolve, 300)); // 300ms delay
-        } catch (error) {
-          log.warning(`   Failed to click button ${i + 1}: ${error}`);
-        }
-      }
-
-      log.success(`   ✅ Clicked ${buttons.length} source buttons`);
-    } catch (error) {
-      log.warning(`Failed to click source buttons: ${error}`);
-    }
-  }
-
-  /**
-   * Extract sources from the sidebar
-   */
-  async extractSourcesFromSidebar(page: Page): Promise<Source[]> {
-    try {
-      log.info("   Extracting sources from sidebar...");
-
-      // Wait for sidebar to update
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      const sources = await page.evaluate((googleDomains) => {
-        const sourcesList: { title: string; url: string; domain: string }[] =
-          [];
-        const seenUrls = new Set<string>();
-
-        // Find sidebar container
-        const sidebar = (document as any).querySelector('[data-container-id="rhs-col"]');
-        if (!sidebar) {
-          return sourcesList;
-        }
-
-        // Extract all links from sidebar
-        const links = Array.from(sidebar.querySelectorAll("a[href]"));
-
-        for (const link of links) {
-          const url = (link as any).href;
-          const title =
-            (link as any).textContent?.trim() || (link as any).href;
-
-          // Skip empty URLs
-          if (!url || url === "#") {
-            continue;
-          }
-
-          // Skip Google domains
-          try {
-            const urlObj = new URL(url);
-            const domain = urlObj.hostname;
-
-            if (googleDomains.some((gd: string) => domain.includes(gd))) {
-              continue;
-            }
-
-            // Skip duplicates
-            if (seenUrls.has(url)) {
-              continue;
-            }
-
-            seenUrls.add(url);
-            sourcesList.push({
-              title,
-              url,
-              domain,
-            });
-          } catch (error) {
-            // Invalid URL, skip
-            continue;
-          }
-        }
-
-        return sourcesList;
-      }, GOOGLE_DOMAINS);
-
-      log.success(`   ✅ Extracted ${sources.length} sources`);
-      return sources;
-    } catch (error) {
-      log.warning(`Failed to extract sources: ${error}`);
-      return [];
     }
   }
 }
