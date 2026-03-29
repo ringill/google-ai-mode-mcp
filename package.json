@@ -16,7 +16,8 @@
     "postbuild": "node -e \"const fs=require('fs');const p='dist/index.js';fs.chmodSync(p,fs.statSync(p).mode|0o111)\"",
     "watch": "tsc --watch",
     "dev": "tsx watch src/index.ts",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "extract-cookies": "node scripts/extract-cookies.js"
   },
   "keywords": [
     "mcp",

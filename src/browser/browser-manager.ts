@@ -23,6 +23,28 @@ const BROWSER_ARGS = [
   "--lang=en-US", // Set browser language to English
 ];
 
+// Google authentication cookies that indicate logged-in state
+const GOOGLE_AUTH_COOKIE_NAMES = [
+  "AEC",
+  "SIDCC",
+  "SID",
+  "HSID",
+  "SSID",
+  "APISID",
+  "SAPISID",
+  "1P_JAR",
+  "NID",
+  "CONSENT",
+  "SOCS",
+  "OSID",
+  "SIDPS",
+  "RPLC",
+  "__Secure-1PSID",
+  "__Secure-1PSIDCC",
+  "__Secure-3PSID",
+  "__Secure-3PSIDCC",
+];
+
 export class BrowserManager {
   private context: BrowserContext | null = null;
   private currentHeadlessMode: boolean | null = null;
@@ -31,6 +53,25 @@ export class BrowserManager {
   constructor() {
     log.info("🌐 BrowserManager initialized");
     log.info(`  Chrome Profile: ${CONFIG.browserProfileDir}`);
+    
+    if (CONFIG.cookies && Object.keys(CONFIG.cookies).length > 0) {
+      log.success("✅ Pre-extracted Google cookies loaded");
+      log.info(`   Cookie count: ${Object.keys(CONFIG.cookies).length}`);
+      
+      // Check for key auth cookies
+      const authCookies = Object.keys(CONFIG.cookies).filter(name => 
+        GOOGLE_AUTH_COOKIE_NAMES.some(authName => 
+          name.toLowerCase().includes(authName.toLowerCase())
+        )
+      );
+      if (authCookies.length > 0) {
+        log.success(`   Auth cookies: ${authCookies.length} (${authCookies.join(", ")})`);
+      } else {
+        log.warning("   ⚠️  No Google auth cookies detected - CAPTCHA may still occur");
+      }
+    } else {
+      log.info("   ℹ️  No pre-extracted cookies - using browser session (CAPTCHA possible)");
+    }
   }
 
   /**
@@ -149,10 +190,41 @@ Alternative: Use headless mode (set headless: true in tool parameters)`);
         }
       );
 
+      // Inject pre-extracted cookies if available
+      if (CONFIG.cookies && Object.keys(CONFIG.cookies).length > 0) {
+        await this.injectCookies(this.context);
+      }
+
       log.success("✅ Browser context created");
     } catch (error) {
       log.error(`Failed to create browser context: ${error}`);
       throw error;
+    }
+  }
+
+  /**
+   * Inject pre-extracted cookies into the browser context
+   */
+  private async injectCookies(context: BrowserContext): Promise<void> {
+    log.info("  🍪 Injecting pre-extracted cookies...");
+    
+    const cookiesToInject = [];
+    for (const [name, value] of Object.entries(CONFIG.cookies!)) {
+      cookiesToInject.push({
+        name,
+        value,
+        domain: ".google.com",
+        path: "/",
+        secure: true,
+        httpOnly: name === "AEC" || name.includes("SID"),
+      });
+    }
+
+    try {
+      await context.addCookies(cookiesToInject);
+      log.success(`   ✅ Injected ${cookiesToInject.length} cookies`);
+    } catch (error) {
+      log.error(`   ❌ Failed to inject cookies: ${error}`);
     }
   }
 
