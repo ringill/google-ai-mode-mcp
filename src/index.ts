@@ -20,7 +20,12 @@
  *   GOOGLE_AI_HEADLESS - Run browser in headless mode (default: true)
  *   GOOGLE_AI_CAPTCHA_TIMEOUT - CAPTCHA timeout in ms (default: 300000)
  *   GOOGLE_AI_STEALTH_ENABLED - Enable stealth mode (default: true)
+ *   GOOGLE_AI_BROWSER_PATH - Custom browser path (e.g., Brave)
  */
+
+// Load environment variables first
+import dotenv from "dotenv";
+dotenv.config();
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";

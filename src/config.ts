@@ -21,9 +21,7 @@ export interface Config {
   headless: boolean;
   browserTimeout: number;
   viewport: { width: number; height: number };
-
-  // Authentication Settings
-  cookies: Record<string, string> | null; // Optional pre-extracted cookies from .env
+  browserPath: string | null; // Optional custom browser path
 
   // Stealth Settings
   stealthEnabled: boolean;
@@ -67,9 +65,7 @@ const DEFAULTS: Config = {
   headless: true,
   browserTimeout: 30000, // 30 seconds
   viewport: { width: 1920, height: 1080 },
-
-  // Authentication Settings
-  cookies: null, // No pre-extracted cookies by default
+  browserPath: null, // No custom browser path by default
 
   // Stealth Settings
   stealthEnabled: true,
@@ -123,52 +119,13 @@ function parseInteger(
 }
 
 /**
- * Parse cookies from environment variable (JSON format)
- */
-function parseCookies(value: string | undefined): Record<string, string> | null {
-  if (value === undefined || !value.trim()) return null;
-  
-  try {
-    // Try to parse as JSON first
-    const parsed = JSON.parse(value);
-    if (typeof parsed === 'object' && parsed !== null) {
-      return parsed;
-    }
-  } catch {
-    // Not JSON, try key=value format (one per line or semicolon separated)
-    const cookies: Record<string, string> = {};
-    const lines = value.split(/[\n;]+/);
-    
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-      
-      const eqIndex = trimmed.indexOf('=');
-      if (eqIndex > 0) {
-        const key = trimmed.substring(0, eqIndex).trim();
-        const val = trimmed.substring(eqIndex + 1).trim();
-        if (key && val) {
-          cookies[key] = val;
-        }
-      }
-    }
-    
-    return Object.keys(cookies).length > 0 ? cookies : null;
-  }
-  
-  return null;
-}
-
-/**
  * Apply environment variable overrides
  */
 function applyEnvOverrides(config: Config): Config {
   return {
     ...config,
-    // Authentication - cookies from env (for CAPTCHA-free operation)
-    cookies: parseCookies(process.env.GOOGLE_AI_COOKIES),
-    
     // Browser Settings
+    browserPath: process.env.GOOGLE_AI_BROWSER_PATH || null,
     headless: parseBoolean(process.env.GOOGLE_AI_HEADLESS, config.headless),
     browserTimeout: parseInteger(
       process.env.GOOGLE_AI_BROWSER_TIMEOUT,
