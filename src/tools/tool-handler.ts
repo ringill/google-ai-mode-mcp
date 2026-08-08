@@ -22,6 +22,7 @@ export class ToolHandler {
   async handleSearchAi(
     args: {
       query: string;
+      image_path?: string;
       headless?: boolean;
       timeout_ms?: number;
       save_to_file?: boolean;
@@ -30,7 +31,7 @@ export class ToolHandler {
     sendProgress: ProgressCallback
   ): Promise<SearchResult> {
     try {
-      const { query, headless, timeout_ms, save_to_file, filename } = args;
+      const { query, image_path, headless, timeout_ms, save_to_file, filename } = args;
 
       // Validate query
       if (!query || query.trim().length === 0) {
@@ -43,7 +44,7 @@ export class ToolHandler {
         };
       }
 
-      log.info(`🔍 Tool call: search_ai("${query}")`);
+      log.info(`🔍 Tool call: search_ai("${query}")${image_path ? ` [image: ${image_path}]` : ""}`);
 
       // Build options
       const options: SearchOptions = {};
@@ -53,9 +54,16 @@ export class ToolHandler {
       if (timeout_ms !== undefined) {
         options.timeout_ms = timeout_ms;
       }
+      if (image_path !== undefined && image_path.trim().length > 0) {
+        options.imagePath = image_path.trim();
+      }
 
       // Send progress: Starting search
-      await sendProgress("Navigating to Google AI Search...");
+      await sendProgress(
+        options.imagePath
+          ? "Uploading image to Google AI Mode and searching..."
+          : "Navigating to Google AI Search..."
+      );
 
       // Execute search
       const result = await this.searchHandler.executeSearch(query, options);

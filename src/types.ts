@@ -52,6 +52,8 @@ export interface CaptchaState {
 export interface SearchOptions {
   headless?: boolean;
   timeout_ms?: number;
+  /** Optional absolute path to an image file to attach to the AI Mode query */
+  imagePath?: string;
 }
 
 /**

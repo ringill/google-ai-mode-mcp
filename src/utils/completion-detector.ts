@@ -6,6 +6,7 @@
 import type { Page } from "patchright";
 import { log } from "./logger.js";
 import {
+  AI_COMPLETION_DATA_PROCESSED,
   AI_COMPLETION_BUTTON_ARIA,
   AI_COMPLETION_TIMEOUT,
   OVERALL_COMPLETION_TIMEOUT,
@@ -14,14 +15,17 @@ import {
 
 export interface CompletionResult {
   success: boolean;
-  method: "svg" | "aria-label" | "text" | "timeout" | "none";
+  method: "data-processed" | "svg" | "aria-label" | "text" | "timeout" | "none";
   elapsed: number;
 }
 
 /**
- * Wait for AI response to complete using 4-stage detection
+ * Wait for AI response to complete using 5-stage detection
  * EXACT 1:1 CLONE of Python skill logic!
  *
+ * Method 0 (0-15s): data-processed panel (zkL70c class) - fires exactly when the
+ *   answer is fully streamed, language-independent, does not depend on feedback
+ *   buttons being present.
  * Method 1 (0-15s): SVG thumbs-up button (100% reliable, language-independent)
  * Method 2 (15-30s): aria-label feedback button (fallback)
  * Method 3 (30-40s): Text indicators (multi-language fallback)
@@ -36,25 +40,45 @@ export async function waitForAiCompletion(page: Page): Promise<CompletionResult>
 
   let aiReady = false;
 
-  // PRIMARY: Button-based detection (DUAL METHOD - ultra-robust!)
-  // Method 1: SVG-based detection (100% reliable, language-independent!)
+  // PRIMARY: data-processed + button-based detection
+  // Method 0: data-processed panel (zkL70c) - fires exactly at stream completion,
+  // independent of feedback buttons being rendered.
   let remainingTime = overallDeadline - Date.now();
   if (remainingTime > 0 && !aiReady) {
     try {
-      log.debug("Method 1: Attempting SVG thumbs-up icon detection...");
-      const svgSelector = 'button svg[viewBox="3 3 18 18"]'; // EXACT skill selector
-      await page.waitForSelector(svgSelector, {
+      log.debug(`Method 0: Attempting data-processed panel detection: ${AI_COMPLETION_DATA_PROCESSED}`);
+      await page.waitForSelector(AI_COMPLETION_DATA_PROCESSED, {
         timeout: Math.min(AI_COMPLETION_TIMEOUT, remainingTime),
         state: "visible",
       });
 
       aiReady = true;
       const elapsed = Date.now() - startTime;
-      log.success("✅ Thumbs UP SVG detected!");
-      log.info(`  ✅ AI complete (Thumbs UP SVG detected!) (${elapsed}ms)`);
-      return { success: true, method: "svg", elapsed };
+      log.success("✅ AI complete (data-processed panel detected!)");
+      log.info(`  ✅ AI complete (data-processed panel detected!) (${elapsed}ms)`);
+      return { success: true, method: "data-processed", elapsed };
 
-    } catch (svgError) {
+    } catch (processedError) {
+      // Method 1: SVG-based detection (100% reliable, language-independent!)
+      log.debug(`Method 0 failed: ${processedError instanceof Error ? processedError.message : String(processedError)}`);
+      remainingTime = overallDeadline - Date.now();
+
+      if (remainingTime > 0 && !aiReady) {
+        try {
+          log.debug("Method 1: Attempting SVG thumbs-up icon detection...");
+          const svgSelector = 'button svg[viewBox="3 3 18 18"]'; // EXACT skill selector
+          await page.waitForSelector(svgSelector, {
+            timeout: Math.min(AI_COMPLETION_TIMEOUT, remainingTime),
+            state: "visible",
+          });
+
+          aiReady = true;
+          const elapsed = Date.now() - startTime;
+          log.success("✅ Thumbs UP SVG detected!");
+          log.info(`  ✅ AI complete (Thumbs UP SVG detected!) (${elapsed}ms)`);
+          return { success: true, method: "svg", elapsed };
+
+        } catch (svgError) {
       // Method 2: aria-label detection (fallback)
       log.debug(`Method 1 failed: ${svgError instanceof Error ? svgError.message : String(svgError)}`);
       remainingTime = overallDeadline - Date.now();
@@ -109,6 +133,8 @@ export async function waitForAiCompletion(page: Page): Promise<CompletionResult>
         }
       }
     }
+    }
+  }
   }
 
   // FINAL TIMEOUT FALLBACK: After 40 seconds, proceed with whatever is loaded

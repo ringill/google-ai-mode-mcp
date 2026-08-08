@@ -47,6 +47,47 @@ GOOGLE_AI_PROFILE_DIR=C:\\Users\\ringill\\AppData\\Local\\BraveSoftware\\Brave-B
 
 ---
 
+## Usage
+
+The server exposes a single MCP tool: **`search_ai`**. An agent (Claude, Cursor, etc.)
+calls it to run a Google AI Mode search and get back a markdown summary with citations.
+
+### Text-only search
+
+```json
+{ "query": "FastAPI tutorial 2026 (routing, async, testing). Provide examples." }
+```
+
+### Image / multimodal search
+
+Pass an `image_path` alongside the query to attach a local image. The query is an
+**instruction** to the model about the image; the file is the visual input.
+
+```json
+{
+  "query": "What is in this image - describe every element in detail",
+  "image_path": "C:\\Users\\ringill\\repo\\project\\screenshot.png"
+}
+```
+
+Rules for `image_path`:
+- Must be an **absolute** path to a local image (PNG / JPG / WebP). Relative paths and URLs are not supported.
+- Use it only when the user explicitly refers to / provides an image. Omit it for pure text questions.
+- Works with any browser configured via `GOOGLE_AI_BROWSER_PATH` (Brave, Edge, ...).
+
+### Parameters
+
+| Parameter     | Type    | Default   | Description                                            |
+|---------------|---------|-----------|--------------------------------------------------------|
+| `query`       | string  | required  | Text query or instruction for the image                |
+| `image_path`  | string  | —         | Absolute path to a local image to attach (multimodal)  |
+| `headless`    | boolean | `true`    | `false` to watch the browser / solve CAPTCHA visually  |
+| `timeout_ms`  | number  | `120000`  | Search timeout in ms (2 min)                           |
+| `save_to_file`| boolean | `false`   | Save markdown result to `results/` folder              |
+| `filename`    | string  | auto      | Custom filename (only used if `save_to_file: true`)    |
+
+---
+
 ## Installation
 
 ```bash

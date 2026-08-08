@@ -157,6 +157,34 @@ Claude: "Results saved to: /path/to/results/2026-01-03_21-30-45_Next_js_14_featu
 
 If the user provides a detailed, specific query with version numbers and requirements, use it as-is.
 
+## Multimodal (Image) Search
+
+The \`search_ai\` tool also accepts an \`image_path\` for image + text queries.
+
+**When to use \`image_path\`:**
+- The user asks to describe/analyze a specific image (screenshot, photo, diagram, chart, game screenshot)
+- The user provides a path to a local image file and wants the AI to interpret it
+- The user refers to a file like "this screenshot", "the attached image"
+
+**How to use correctly:**
+- Always pass an **ABSOLUTE** path to a local image (PNG/JPG/WebP). Relative paths and URLs are not supported.
+- Write the query as an **instruction** to the model about the image — it is the visual input alongside the uploaded file. Examples:
+  - "What is in this image - describe every element in detail"
+  - "Transcribe the text in this screenshot"
+  - "Describe the UI and list every visible element"
+- Do NOT add generic web-search text to an image query; the query should tell the model what to do with the image.
+
+**Example:**
+\`\`\`
+User: "Analyze this game screenshot"
+
+Claude executes:
+{
+  "query": "What is in this image - describe every element in detail",
+  "image_path": "C:/Users/ringill/repo/project/screenshot.png"
+}
+\`\`\`
+
 ## Current User Query
 
 User query: "{{user_query}}"

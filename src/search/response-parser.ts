@@ -59,19 +59,17 @@ export class ResponseParser {
           return { error: "main-col not found (AI Overview missing?)" };
         }
 
-        // SERPO OPTIMIZATION: Expand "Show more" buttons first
+        // SERPO OPTIMIZATION: Expand "Show more" buttons first.
+        // Language-independent: the expansion buttons carry `aria-expanded="false"`.
+        // Matching on the attribute (not on localized text like "Show more") keeps
+        // this working regardless of the browser UI language.
         try {
           const showMoreBtns = Array.from(
-            mainCol.querySelectorAll('[aria-expanded="false"]')
+            mainCol.querySelectorAll('button[aria-expanded="false"]')
           );
           for (const btn of showMoreBtns) {
             const btnEl = btn as HTMLElement;
-            if (
-              isVisible(btnEl) &&
-              (btnEl.innerText.includes("Show more") ||
-                btnEl.innerText.includes("Mehr anzeigen") ||
-                btnEl.innerText.includes("Meer weergeven"))
-            ) {
+            if (isVisible(btnEl)) {
               (btnEl as any).click();
               // Small delay for expansion
               const waitSync = (ms: number) => {

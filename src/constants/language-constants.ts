@@ -29,7 +29,80 @@ export const CITATION_SELECTORS = [
   'button[aria-label*="links" i]',
 ];
 
+// Composer attach button ("Add files and tools") - Multi-language fallback chain
+export const COMPOSER_ATTACH_SELECTORS = [
+  // Russian
+  "button[aria-label='Добавить файлы и инструменты']",
+  "button[aria-label='Добавить файлы']",
+  // English
+  "button[aria-label='Add files and tools']",
+  "button[aria-label='Add files, tools and select a model']",
+  "button[aria-label='Add files']",
+  // German
+  "button[aria-label='Dateien und Tools hinzufügen']",
+  "button[aria-label='Dateien hinzufügen']",
+  // French
+  "button[aria-label='Ajouter des fichiers et des outils']",
+  "button[aria-label='Ajouter des fichiers']",
+  // Spanish
+  "button[aria-label='Agregar archivos y herramientas']",
+  "button[aria-label='Agregar archivos']",
+  // Italian
+  "button[aria-label='Aggiungi file e strumenti']",
+  "button[aria-label='Aggiungi file']",
+  // Dutch
+  "button[aria-label='Bestanden en tools toevoegen']",
+  "button[aria-label='Bestanden toevoegen']",
+];
+
+// Composer "Add images" menu item - Multi-language fallback chain
+export const COMPOSER_ADD_IMAGES_SELECTORS = [
+  // Russian
+  "button[aria-label='Добавить изображения']",
+  // English
+  "button[aria-label='Add images']",
+  // German
+  "button[aria-label='Bilder hinzufügen']",
+  // French
+  "button[aria-label='Ajouter des images']",
+  // Spanish
+  "button[aria-label='Agregar imágenes']",
+  // Italian
+  "button[aria-label='Aggiungi immagini']",
+  // Dutch
+  "button[aria-label='Afbeeldingen toevoegen']",
+];
+
+// Text fallback keywords for the "Add images" menu item (matched against textContent)
+export const COMPOSER_ADD_IMAGES_KEYWORDS = [
+  'Добавить изображения', // Russian
+  'Add images',           // English
+  'Bilder hinzufügen',    // German
+  'Ajouter des images',   // French
+  'Agregar imágenes',     // Spanish
+  'Aggiungi immagini',    // Italian
+  'Afbeeldingen toevoegen', // Dutch
+];
+
+// Composer Send button aria-labels - Multi-language fallback chain.
+// Used to build `button[aria-label='...']` selectors and to poll for the enabled
+// state (upload-complete signal).
+export const COMPOSER_SEND_ARIA_LABELS = [
+  'Send',      // English
+  'Отправить', // Russian
+  'Senden',    // German
+  'Envoyer',   // French
+  'Enviar',    // Spanish
+  'Invia',     // Italian
+  'Verzenden', // Dutch
+];
+
 // AI Completion Detection - Button-based (language-independent!)
+// Method 0: "data-processed" panel. The answer container's panel carries
+// `class="zkL70c" data-processed="true"` ONLY once the answer is fully streamed.
+// NOTE: a plain `div[data-processed="true"]` exists statically (empty class) from
+// t=0 and `jsuid` is randomly generated per run — so MUST scope to the zkL70c class.
+export const AI_COMPLETION_DATA_PROCESSED = 'div.zkL70c[data-processed="true"]';
 export const AI_COMPLETION_BUTTON_SVG = 'button svg[viewBox="3 3 18 18"]'; // Thumbs-up SVG
 export const AI_COMPLETION_BUTTON_ARIA = '[aria-label*="feedback" i]'; // Aria-label fallback
 export const AI_COMPLETION_TIMEOUT = 15000; // 15 seconds per method
